@@ -13,30 +13,23 @@ const (
 )
 
 type Proposer struct {
-	lastTried     int
-	clientMessage chan Message
-	promise       chan Message
-	accepted      chan Message
-	Role
-}
-
-type Instance struct {
-	instance_id int
-	value       string
-	Proposer
-	Acceptor
+	lastTried       int
+	clientMessage   string
+	promiseMessage  chan Message
+	acceptedMessage chan Message
+	// Role
 }
 
 // Prepare call Prepare of Acceptor, return the prepare requese is or not success and the promise message.
 // Quorum should be define in config
 // Wait time should be init for get the promise
-func (p *Proposer) Prepare(quorum []string, length int, wait_time int) (bool, []string) {
+func (p *Proposer) Propose(quorum []string, length int, wait_time int) (bool, []string) {
 	p.lastTried = lastTried + 1
 	send := Message{sender: p.id, value: p.lastTried, state: 1}
 
 	for i := 0; i < len(quorum); i++ {
 		log.Println("Send PREPARE request to:", quorum[i])
-		go rpcCall(quorum[i], "Acceptor.Prepare:", send, p.promise)
+		go rpcCall(quorum[i], "Acceptor.Promise:", send, p.promise)
 	}
 
 	promise_ok := 0
@@ -46,10 +39,10 @@ func (p *Proposer) Prepare(quorum []string, length int, wait_time int) (bool, []
 	for {
 		count++
 		select {
-		case <-p.promise:
+		case c <- p.promise:
 			// Just process the success stutus, or add the reject status if you want
-			if i.state == 1 {
-				valus[promise_ok] = i.value
+			if c.state == 1 {
+				valus[promise_ok] = c.value
 				promise_ok++
 				if promise_ok > length {
 					return true, values
@@ -71,7 +64,7 @@ func (p *Proposer) Prepare(quorum []string, length int, wait_time int) (bool, []
 func (p *Proposer) Accept(quorum []string, length int, wait_time int, value string) (bool, []string) {
 	send := Message{sender: p.id, value: fmt.Sprintf("%d%s%d", p.lastTried, value), state: 1}
 	for i := 0; i < len(quorum); i++ {
-		go rpcCall(quorum[i], "Acceptor.Accept:", send, p.accepted)
+		go rpcCall(quorum[i], "Acceptor.Accepted:", send, p.accepted)
 	}
 
 	accepted_ok := 0

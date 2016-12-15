@@ -6,16 +6,18 @@ import (
 )
 
 type Acceptor struct {
-	nextBal int
-	preVote int
-	Role
+	nextBal       int
+	preVote       int
+	propseMessage chan Message
+	acceptMessage chan Message
+	// Role
 }
 
 const (
 	SEPARATOR = "|&|#|$|"
 )
 
-func (a *Acceptor) Prepare(m *Message, reply *Message) {
+func (a *Acceptor) Promise(m *Message, reply *Message) {
 	reply.sender = a.id
 	b := ValueToInt(m.value)
 	if b > a.nextBal {
@@ -28,7 +30,7 @@ func (a *Acceptor) Prepare(m *Message, reply *Message) {
 	}
 }
 
-func (a *Acceptor) Accept(m *Message, reply *Message) {
+func (a *Acceptor) Accepted(m *Message, reply *Message) {
 	reply.sender = a.id
 	values := strings.Split(m.value, SEPARATOR)
 	if len(values) == 2 && values[0] == a.nextBal {

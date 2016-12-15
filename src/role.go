@@ -62,6 +62,15 @@ func (r *Role) handleclient(conn net.Conn) {
 
 }
 
+func (r *Role) send(to string, m Message) {
+	udpAddr, err := net.ResolveUDPAddr("udp4", to)
+	checkError(err)
+	conn, err := net.DialUDP("udp", nil, udpAddr)
+	checkError(err)
+	_, err = conn.Write([]byte(m.String()))
+	checkError(err)
+}
+
 func checkError(err error) {
 	if err != nil {
 		fmt.Println("Fatal error ", err.Error())
