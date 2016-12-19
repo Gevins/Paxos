@@ -7,7 +7,7 @@ import (
 
 // id, log should config in conf
 type Machine struct {
-	id   int
+	// id   int
 	name string
 	port string
 	log  string
@@ -15,6 +15,7 @@ type Machine struct {
 	msgs chan Message
 	istc map[int]Instance
 	istc_id int
+	quorum []string
 	// Instance
 }
 

@@ -10,10 +10,11 @@ import (
 )
 
 type Role struct {
-	id    int
-	name  string
-	port  int
-	state int // 0:stop, 1:running, 2:stoping
+	id int
+	// name  string
+	// port  int
+	// state int // 0:stop, 1:running, 2:stoping
+	quorum []string
 }
 
 func (r *Role) Prepare() {
