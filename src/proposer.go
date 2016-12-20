@@ -2,7 +2,6 @@ package src
 
 import (
 	"fmt"
-	// log "github.com/cihub/seelog"
 	"log"
 	"net/rpc"
 	"time"
@@ -68,7 +67,7 @@ func (p *Proposer) Propose(wait_time int) (byte, [int]string) {
 	}
 }
 
-func (p *Proposer) Accept(wait_time int, value string) (bool, []string) {
+func (p *Proposer) Accept(wait_time int, value string) {
 	send := Message{sender: p.id, value: fmt.Sprintf("%d%s%d", p.lastTried, value), state: 1, tag: 3}
 	length := len(p.Role.quorum)
 	for i := 0; i < length; i++ {
@@ -121,31 +120,28 @@ func (p *Proposer) Accept(wait_time int, value string) (bool, []string) {
 
 func (p *Proposer) run() {
 	wait_time := time.Millisecond * 10
+	// process time out
 	for {
-		state, values := p.Propose(wait_time)
-		if state == '0' {
-			tmp_key, tmp_value := 0, ""
-			for key, value := range values {
-				if key > tmp_key {
-					tmp_value = value
+		go func() {
+			state, values := p.Propose(wait_time)
+			if state == '0' {
+				tmp_key, tmp_value := 0, ""
+				for key, value := range values {
+					if key > tmp_key {
+						tmp_value = value
+					}
 				}
-			}
-			if tmp_value != "" {
-				send := Message{sender: p.id, value: p.lastTried, state: 1, tag: 3}
-				for i := 0; i < len(p.Role.quorum); i++ {
-					// go rpcCall(quorum[i], "Acceptor.Accepted:", send, p.accepted)
-					send.Send(p.Role.quorum[i])
-				}
-			}
-		} else if state == '1' {
-			break
-		} else {
-			continue
-		}
-	}
+				p.Accept(wait_time, value)
 
-	for {
-		p.Accept(wait_time, value)
+			} else if state == '1' {
+				break
+			} else {
+				// time out
+				continue
+			}
+		}()
 	}
-
+	// for {
+	// 	p.Accept(wait_time, value)
+	// }
 }

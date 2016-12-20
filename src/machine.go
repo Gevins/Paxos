@@ -8,36 +8,22 @@ import (
 // id, log should config in conf
 type Machine struct {
 	// id   int
-	name string
-	port string
-	log  string
-	port int
-	msgs chan Message
-	istc map[int]Instance
+	name    string
+	log     string
+	port    int
+	msgs    chan Message
+	istc    map[int]Instance
 	istc_id int
-	quorum []string
+	quorum  []string
 	// Instance
 }
-
-// type Instance struct {
-// 	instance_id int
-// 	value       string
-// 	Proposer
-// 	Acceptor
-// }
 
 func (m *Machine) init() {
 	// Log init
 	if _, err := os.Stat(m.log); os.IsNotExist(err) {
 		os.Create(m.log)
 	}
-	// RPC register
-	// id = , log = , instance_id = ,
-	// Proposer{lastTried: int, clientMessage:, promise: make(chan Message), accepted: make(chan Message),Role:}
-	// Acceptor{nextBal: int, preVote: int, Role{}}
-	// Role{id: int, name: string, port: int, state: int}
-	// pps := Proposer{}
-	machine := Machine{id: 1, log: "path/to/file", msgs: make(chan Message, 16), istc: make(map[int]Instance))}
+	machine := Machine{id: 1, log: m.log, msgs: make(chan Message, 16), istc: make(map[int]Instance)}
 
 	// Start the UDP service
 	udpAddr, err := net.ResolveUDPAddr("udp4", service)
@@ -46,16 +32,9 @@ func (m *Machine) init() {
 	CheckError(err)
 	for {
 		var buf [512]byte
-		_, addr, err := conn.ReadFromUDP(buf[0:])
+		n, addr, err := conn.ReadFromUDP(buf[0:])
 		if err == nil {
-			count := 0
-			for i := 0; i < len(buf); i++ {
-				if buf[i] == '\n' {
-					break
-				}
-				count++
-			}
-			m.msgs <- ParseMessage(buf[:count])
+			m.msgs <- ParseMessage(buf[:n])
 		}
 	}
 }
@@ -67,12 +46,10 @@ func CheckError(err error) {
 	}
 }
 
-
 func (m *Machine) Run() {
 	for {
-		count++
 		select {
-		case c <-m.msgs:
+		case c <- m.msgs:
 			// 0: client, 1: propose, 2:promise, 3:accept, 4:accepted
 			switch c.tag {
 			case 0:
@@ -107,5 +84,5 @@ func (m *Machine) Run() {
 }
 
 func processMessage() {
-	
+
 }

@@ -27,12 +27,12 @@ func ValueToInt(v string) int {
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("%d%s%d%s%s%s%d%s%d", m.sender, SEPARATOR, m.value, SEPARATOR, m.state, SEPARATOR, m.tag)
+	return fmt.Sprintf("%d%s%d%s%d%s%s%s%d%s%d", m.instance_id, m.sender, SEPARATOR, m.value, SEPARATOR, m.state, SEPARATOR, m.tag)
 }
 
 func ParseMessage(m []byte) Message {
 	strs := strings.Split(string(m), SEPARATOR)
-	return Message{sender: strs[0], value: strs[1], state: strs[2]}
+	return Message{instance_id: strs[0], sender: strs[1], value: strs[2], state: strs[3], tag: strs[4]}
 }
 
 func (m *Message) Send(rcv string) {
