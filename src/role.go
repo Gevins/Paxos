@@ -4,8 +4,8 @@ import (
 	"fmt"
 	// "log"
 	"net"
-	"net/http"
-	"net/rpc"
+	//"net/http"
+	//"net/rpc"
 	"os"
 )
 
@@ -39,9 +39,9 @@ func stop(l *net.TCPListener) {
 	os.Exit(0)
 }
 
-func (r *Role) Stop() {
-	r.state = 2
-}
+//func (r *Role) Stop() {
+//	r.state = 2
+//}
 
 func (r *Role) handleclient(conn net.Conn) {
 	defer conn.Close()

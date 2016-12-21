@@ -1,13 +1,16 @@
 package src
 
 import (
-	"net/rpc"
+	//"net/rpc"
 	"os"
+	"net"
+	"fmt"
+	"log"
+	"time"
 )
 
 // id, log should config in conf
 type Machine struct {
-	// id   int
 	name    string
 	log     string
 	port    int
@@ -19,20 +22,21 @@ type Machine struct {
 }
 
 func (m *Machine) init() {
-	// Log init
+	// Log init: create the log file if not exist
 	if _, err := os.Stat(m.log); os.IsNotExist(err) {
 		os.Create(m.log)
 	}
-	machine := Machine{id: 1, log: m.log, msgs: make(chan Message, 16), istc: make(map[int]Instance)}
+	//machine := Machine{name: "", log: m.log, msgs: make(chan Message, 16), istc: make(map[int]Instance)}
 
 	// Start the UDP service
-	udpAddr, err := net.ResolveUDPAddr("udp4", service)
+	udpAddr, err := net.ResolveUDPAddr("udp4", m.name)
 	CheckError(err)
 	conn, err := net.ListenUDP("udp", udpAddr)
 	CheckError(err)
+	defer conn.Close()
 	for {
 		var buf [512]byte
-		n, addr, err := conn.ReadFromUDP(buf[0:])
+		n, _, err := conn.ReadFromUDP(buf[0:])
 		if err == nil {
 			m.msgs <- ParseMessage(buf[:n])
 		}
@@ -47,42 +51,36 @@ func CheckError(err error) {
 }
 
 func (m *Machine) Run() {
+	c := new(Message)
 	for {
 		select {
 		case c <- m.msgs:
 			// 0: client, 1: propose, 2:promise, 3:accept, 4:accepted
+			tmp_istc := m.istc[c.instance_id]
 			switch c.tag {
 			case 0:
 				// create new instance
 				m.istc_id = m.istc_id + 1
-				p := Proposer{lastTried: 0, clientMessage: c, promise: make(chan Message), accepted: make(chan Message)}
+				p := Proposer{lastTried: 0, clientMessage: c, promiseMessage: make(chan Message), acceptedMessage: make(chan Message)}
 				a := Acceptor{nextBal: 0, preVote: 0}
 				i := Instance{instance_id: m.istc_id, value: "", Proposer: p, Acceptor: a}
 				m.istc[m.istc_id] = i
 			case 1:
-				m.istc[c.instance_id].Acceptor.propseMessage <- c
+				//p := Proposer{lastTried: 0, clientMessage: c, promiseMessage: make(chan Message), acceptedMessage: make(chan Message)}
+				//a := Acceptor{nextBal: 0, preVote: 0}
+				//i := Instance{instance_id: m.istc_id, value: "", Proposer: p, Acceptor: a}
+				//m.istc[c.instance_id].Acceptor.proposeMessage <- c
+				tmp_istc.Acceptor.proposeMessage <- c
 			case 2:
-				m.istc[c.instance_id].Proposer.promiseMessage <- c
+				tmp_istc.Proposer.promiseMessage <- c
 			case 3:
-				m.istc[c.instance_id].Acceptor.acceptMessage <- c
+				tmp_istc.Acceptor.acceptMessage <- c
 			case 4:
-				m.istc[c.instance_id].Proposer.acceptedMessage <- c
-			}
-			// Just process the success stutus, or add the reject status if you want
-			if i.state == 1 {
-				valus[promise_ok] = i.value
-				promise_ok++
-				if promise_ok > length {
-					return true, values
-				}
+				tmp_istc.Proposer.acceptedMessage <- c
 			}
 		default:
 			log.Println("Wait the PROMISE message from Acceptors ... ")
 			time.Sleep(100 * time.Microsecond)
 		}
 	}
-}
-
-func processMessage() {
-
 }

@@ -3,7 +3,7 @@ package src
 import (
 	"fmt"
 	"log"
-	"net/rpc"
+	//"net/rpc"
 	"time"
 )
 
@@ -22,8 +22,8 @@ type Proposer struct {
 // Prepare call Prepare of Acceptor, return the prepare requese is or not success and the promise message.
 // Quorum should be define in config
 // Wait time should be init for get the promise
-func (p *Proposer) Propose(wait_time int) (byte, [int]string) {
-	p.lastTried = lastTried + 1
+func (p *Proposer) Propose(wait_time int) (byte, map[int]string) {
+	p.lastTried = p.lastTried + 1
 	send := Message{sender: p.id, value: p.lastTried, state: 1, tag: 1}
 
 	length := len(p.Role.quorum)
@@ -35,8 +35,9 @@ func (p *Proposer) Propose(wait_time int) (byte, [int]string) {
 
 	promise_ok := 0
 	wait_time_boom := time.After(wait_time * time.Millisecond)
-	values := make([int]string)
+	values := make(map[int]string)
 	count := 0
+	c := new(Message)
 	for {
 		select {
 		case c <- p.promiseMessage:
@@ -50,7 +51,7 @@ func (p *Proposer) Propose(wait_time int) (byte, [int]string) {
 				}
 			} else {
 				count++
-				if count == len(quorum) {
+				if count == length {
 					// Rejected
 					return '1', nil
 				}
@@ -77,13 +78,14 @@ func (p *Proposer) Accept(wait_time int, value string) {
 
 	accepted_ok := 0
 	wait_time_boom := time.After(wait_time * time.Millisecond)
-	values := make([]string, length)
 	count := 0
+	values := make(map[int]string)
+	c := new(Message)
 	for {
 		select {
-		case <-p.promise:
-			if i.state == 1 {
-				valus[accepted_ok] = i.value
+		case c <- p.promiseMessage:
+			if c.state == 1 {
+				values[accepted_ok] = c.value
 				accepted_ok++
 				if accepted_ok > length {
 					// aceess next step
@@ -131,13 +133,13 @@ func (p *Proposer) run() {
 						tmp_value = value
 					}
 				}
-				p.Accept(wait_time, value)
+				p.Accept(wait_time, tmp_value)
 
 			} else if state == '1' {
-				break
+				return
 			} else {
 				// time out
-				continue
+				return
 			}
 		}()
 	}
