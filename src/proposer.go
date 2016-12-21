@@ -121,8 +121,6 @@ func (p *Proposer) Accept(wait_time int, value string) {
 // }
 
 func (p *Proposer) run() {
-	wait_time := time.Millisecond * 10
-	// process time out
 	for {
 		go func() {
 			state, values := p.Propose(wait_time)
@@ -143,6 +141,8 @@ func (p *Proposer) run() {
 			}
 		}()
 	}
+	wait_time := time.Millisecond * 10
+	// process time out
 	// for {
 	// 	p.Accept(wait_time, value)
 	// }
